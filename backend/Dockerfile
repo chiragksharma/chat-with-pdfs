@@ -2,19 +2,24 @@
 # https://hub.docker.com/_/python
 FROM python:3.9-slim
 
-# Set environment variables
-ENV PYTHONDONTWRITEBYTECODE 1
+# Set environment variables to ensure the output is sent directly to the terminal with no buffering.
 ENV PYTHONUNBUFFERED 1
 
-# Set work directory
-WORKDIR /usr/src/app
+# Set the working directory
+WORKDIR /app
 
-# Install dependencies
-COPY ./requirements.txt /usr/src/app/requirements.txt
+# Copy requirements.txt and install dependencies
+COPY requirements.txt requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy project
-COPY . /usr/src/app
+# Copy the rest of the application code to the working directory
+COPY . .
 
-# Run the application
-CMD ["python", "src/main.py"]
+# Ensure the service account key is copied
+COPY service_account_key.json /app/service_account_key.json
+
+# Set environment variables for Flask and Cloud
+ENV GOOGLE_APPLICATION_CREDENTIALS=/app/service_account_key.json
+
+# Command to run the application using Gunicorn
+CMD ["gunicorn", "-b", "0.0.0.0:8080", "app:app"]

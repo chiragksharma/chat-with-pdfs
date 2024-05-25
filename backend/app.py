@@ -5,6 +5,7 @@ from routes.upload import upload_bp
 from routes.create import create_bp
 from routes.getfiles import read_file_bp
 from routes.chat import chat_bp
+from routes.readfiles import read_documents
 from config import Config
 from flask_cors import CORS
 from google.cloud import storage
@@ -23,6 +24,7 @@ def create_app():
     app.register_blueprint(upload_bp)
     app.register_blueprint(create_bp)
     app.register_blueprint(read_file_bp,url_prefix='/read')
+    app.register_blueprint(read_documents)
     app.register_blueprint(chat_bp,url_prefix='/document_chat')
 
 

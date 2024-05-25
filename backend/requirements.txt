@@ -1,6 +1,6 @@
 Flask==3.0.3
 google-cloud-storage==1.42.0
-gunicorn==20.1.0
+gunicorn
 Werkzeug==3.0.3
 python-dotenv
 flask-cors
@@ -13,3 +13,4 @@ numpy
 pinecone-client
 psycopg2-binary
 celery[sqlalchemy]
+openai

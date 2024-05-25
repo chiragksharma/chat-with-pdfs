@@ -76,7 +76,15 @@ const FileDrop = ({ }) => {
         if (status === 'done') {
             if (info.file.response && info.file.response.file_url) {
                 message.success(`${info.file.name} file uploaded successfully.`);
-                handleFileUpload(info.file.originFileObj,info.file.name);
+                handleFileUpload(info.file.originFileObj, info.file.name)
+                .then(() => {
+                    setUploading(false); // Only set uploading to false after handleFileUpload completes successfully
+                })
+                .catch((error) => {
+                    message.error(`${info.file.name} file processing failed.`);
+                    console.error('File processing failed:', error);
+                    setUploading(false); // Set uploading to false even if handleFileUpload fails
+                });            
             } else {
                 message.error(`${info.file.name} file upload failed.`);
                 console.log(`${info.file.name} File upload failed`);

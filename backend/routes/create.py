@@ -13,6 +13,7 @@ import os
 from celery_config import celery_app
 from dotenv import load_dotenv
 import pickle
+import threading
 
 
 # Load environment variables from .env file
@@ -56,6 +57,31 @@ def create_table():
     conn.commit()
     cur.close()
     conn.close()
+
+def process_document(document_id, title, file_url, temp_file_path):
+    try:
+        # Extract text from the downloaded PDF file
+        print("INSIDE THE BACKGROUND THREAD")
+        document_text = extract_text_from_pdf(temp_file_path)
+        print(f"Extracted text from document {document_id}")
+
+        text_segments = split_text_into_segments(document_text)
+        print("Text segmentation done")
+
+        # Generate embeddings from the extracted text segments
+        embeddings = [generate_embeddings(segment) for segment in text_segments]
+        print(f"Generated embeddings for document {document_id}")
+
+        # Store embeddings in PostgreSQL
+        store_embeddings_in_postgres(document_id, title, file_url, embeddings, text_segments)
+        print(f"Stored embeddings for document {document_id}")
+
+        # Clean up temporary file
+        os.remove(temp_file_path)
+        print(f"Temporary file {temp_file_path} removed")
+    except Exception as e:
+        print(f"Error processing document {document_id}: {e}")
+
 
 @celery_app.task(name="routes.create.process_document_task")
 def process_document_task(document_id, title, file_url, temp_file_path):
@@ -125,23 +151,31 @@ def create_document():
     # Send task to Celery
     #process_document_task.delay(document_id, title, file_url, temp_file_path)
 
+    
+    # Store metadata in PostgreSQL
+    store_metadata_in_postgres(document_id, title, file_url, filename)
+
+    # Start background processing
+    thread = threading.Thread(target=process_document, args=(document_id, title, file_url, temp_file_path))
+    thread.start()
     # Extract text from the downloaded PDF file
-    document_text = extract_text_from_pdf(temp_file_path)
-    print(f"Extracted text from document {document_id}")
+    # document_text = extract_text_from_pdf(temp_file_path)
+    # print(f"Extracted text from document {document_id}")
 
-    text_segments = split_text_into_segments(document_text)
+    # text_segments = split_text_into_segments(document_text)
     
+    # print("text segmentation done")
 
-    # Generate embeddings from the extracted text segments
-    embeddings = [generate_embeddings(segment) for segment in text_segments]
-    print(f"Generated embeddings for document {document_id}")
-    
-     # Store embeddings in PostgreSQL
-    store_embeddings_in_postgres(document_id, title, file_url, embeddings, text_segments)
-    print(f"Stored embeddings for document {document_id}")
+    # # Generate embeddings from the extracted text segments
+    # embeddings = [generate_embeddings(segment) for segment in text_segments]
+    # print(f"Generated embeddings for document {document_id}")
+
+    #  # Store embeddings in PostgreSQL
+    # store_embeddings_in_postgres(document_id, title, file_url, embeddings, text_segments)
+    # print(f"Stored embeddings for document {document_id}")
 
 
-    os.remove(temp_file_path)
+    # os.remove(temp_file_path)
 
 
     return jsonify({
@@ -154,7 +188,7 @@ def create_document():
 def generate_embeddings(text):
     tokenizer = AutoTokenizer.from_pretrained("sentence-transformers/all-MiniLM-L6-v2")
     model = AutoModel.from_pretrained("sentence-transformers/all-MiniLM-L6-v2")
-    
+    print("generating embeddings....")
     inputs = tokenizer(text, return_tensors='pt', truncation=True, padding=True, max_length=512)
     with torch.no_grad():
         outputs = model(**inputs)
@@ -173,10 +207,7 @@ def store_embeddings_in_postgres(document_id, title, file_url, embeddings, texts
             serialized_embedding = pickle.dumps(embedding)  # Serialize embedding
             cur.execute("""
                 INSERT INTO document_embeddings (document_id, title, file_url, embedding, text, idx)
-                VALUES (%s, %s, %s, %s, %s, %s)
-                ON CONFLICT (document_id, idx) DO UPDATE 
-                SET embedding = EXCLUDED.embedding,
-                    text = EXCLUDED.text;
+                VALUES (%s, %s, %s, %s, %s, %s);
             """, (document_id, title, file_url, serialized_embedding, texts[idx], idx))
         conn.commit()
         cur.close()
@@ -185,13 +216,27 @@ def store_embeddings_in_postgres(document_id, title, file_url, embeddings, texts
     except Exception as e:
         print(f"Error inserting/updating document {document_id}: {e}")
 
+def store_metadata_in_postgres(document_id, title, file_url, filename):
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("""
+            INSERT INTO document_metadata (document_id, title, file_url, filename)
+            VALUES (%s, %s, %s, %s);
+        """, (document_id, title, file_url, filename))
+        conn.commit()
+        cur.close()
+        conn.close()
+        print(f"Metadata for document {document_id} stored successfully.")
+    except Exception as e:
+        print(f"Error storing metadata for document {document_id}: {e}")
 
 
 def get_document_metadata(document_id):
     """Fetches metadata for a given document."""
     conn = get_db_connection()
     cur = conn.cursor()
-    cur.execute("SELECT title, file_url FROM document_embeddings WHERE document_id = %s", (document_id,))
+    cur.execute("SELECT title, file_url FROM document_metadata WHERE document_id = %s", (document_id,))
     result = cur.fetchone()
     cur.close()
     conn.close()
