@@ -25,7 +25,8 @@ This project provides a seamless way to manage and interact with PDF documents. 
 
 ## Architecture
 
-![Architecture](file-eW6fTZV7qXXWvR3oNppAioFb)
+![diagram-export-5-26-2024-1_33_40-AM](https://github.com/chiragksharma/chat-with-pdfs/assets/74889769/96a2a6fe-e5e5-4c04-a0de-b02b37b5cbc6)
+
 
 ## Setup
 
