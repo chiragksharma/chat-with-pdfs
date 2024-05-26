@@ -67,7 +67,12 @@ Interact with the document using the chat interface. The system will generate re
 `api/apiClient.js`: Axios instance configured for making API requests to the backend.
 
 ## Video Demo
-Watch the video demo - Add your video demo link here
+
+Demo of the project: https://www.loom.com/share/f6a2c62d8d4d47f4bca506d7736df2b4?sid=c6687f61-100b-47fc-9bca-e28df8f59b9c
+
+[Part 1] Project Explanation video: https://www.loom.com/share/52ab63249a364f628472af5cfb6e5151?sid=79181599-0d1b-4c09-81b0-b939f8904a41
+
+[Part 2] Project Explanation Video: https://www.loom.com/share/a0384db4994449ccadbbc4e2c863152a?sid=72e8cc66-0c4a-4431-b1da-1fd495e430ab
 
 ## Contribution
 Feel free to open issues or submit pull requests for improvements and bug fixes.
